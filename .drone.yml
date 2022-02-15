@@ -42,7 +42,7 @@ steps:
       - "export DOCKER_IMAGE=\"$${ACCOUNT_PREFIX}$${IMAGE}-$${COMPONENT}\""
       - "docker pull \"$REGISTRY/$DOCKER_IMAGE:latest\" || true"
       - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" ."
-      - "[ \"$DRONE_BRANCH\" == \"master\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:latest\""
+      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:latest\""
       - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
       - "docker push --all-tags \"$REGISTRY/$DOCKER_IMAGE\""
 
@@ -64,7 +64,7 @@ steps:
       - "export DOCKER_IMAGE=\"$${ACCOUNT_PREFIX}$${IMAGE}-$${COMPONENT}\""
       - "docker pull \"$REGISTRY/$DOCKER_IMAGE:latest\" || true"
       - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" ."
-      - "[ \"$DRONE_BRANCH\" == \"master\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:latest\""
+      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:latest\""
       - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
       - "docker push --all-tags \"$REGISTRY/$DOCKER_IMAGE\""
       - "docker login -u \"$REGISTRY_USERNAME\" -p \"$REGISTRY_PASSWORD\" \"$REGISTRY\""
@@ -103,6 +103,6 @@ concurrency:
   limit: 1
 ---
 kind: signature
-hmac: 2210c0107b5f9fe463a8fdebc01b2fa399e485cd2a9dccecf5e7b714bbb632d6
+hmac: f92240bf7d77cd65b42e4403c4780cf3f817f342580fd9ec21b96df7cb646f87
 
 ...
