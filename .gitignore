@@ -1,0 +1,9 @@
+/files/
+/ssl/
+/server-configs/
+!/server-configs/email.php
+/mysql/
+/tmp/
+/secrets/
+!/secrets/.keep
+!/secrets/*.sample

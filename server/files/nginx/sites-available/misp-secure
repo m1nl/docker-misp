@@ -1,0 +1,70 @@
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+
+    root /var/www/MISP/app/webroot;
+    index index.php;
+
+    client_max_body_size 50M;
+
+    access_log /dev/docker-stdout;
+    log_not_found off;
+
+    error_log /dev/docker-stderr error;
+
+    ssl_certificate /etc/nginx/certs/cert.pem;
+    ssl_certificate_key /etc/nginx/certs/key.pem;
+    ssl_dhparam /etc/nginx/certs/dhparams.pem;
+
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
+    ssl_session_tickets off;
+
+    # modern configuration
+    ssl_protocols TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    # enable HSTS
+    add_header Strict-Transport-Security "max-age=15768000; includeSubdomains";
+
+    # Aded headers for hardening browser security
+    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Download-Options "noopen" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Permitted-Cross-Domain-Policies "none" always;
+    add_header X-Robots-Tag "none" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Remove X-Powered-By, which is an information leak
+    fastcgi_hide_header X-Powered-By;
+
+    location ~ ^/(?:status)(?:$|/) { return 404; }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+
+        fastcgi_param HTTPS $fastcgi_param_https_variable if_not_empty;
+
+        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        fastcgi_read_timeout 300;
+
+        fastcgi_intercept_errors on;
+    }
+
+    location ~ \.(?:css|js|svg|gif|png|jpg|ico)$ {
+        try_files $uri /index.php$is_args$query_string;
+        expires 6M;
+        access_log off;
+    }
+
+    location ~ \.woff2?$ {
+        try_files $uri /index.php$is_args$query_string;
+        expires 7d;
+        access_log off;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php$is_args$query_string;
+    }
+}

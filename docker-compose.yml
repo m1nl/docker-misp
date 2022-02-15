@@ -1,0 +1,97 @@
+version: '3.9'
+services:
+
+  redis:
+    image: redis:6.2.6-alpine
+    restart: always
+#    volumes:
+#      - /mnt/redis:/data:Z
+
+  db:
+    image: mariadb:10.7.1-focal
+    restart: always
+    environment:
+      - MARIADB_USER=misp
+      - MARIADB_DATABASE=misp
+      - MARIADB_PASSWORD_FILE=/run/secrets/mysql_misp_password
+      - MARIADB_ROOT_PASSWORD_FILE=/run/secrets/mysql_root_password
+#    volumes:
+#      - /mnt/mariadb:/var/lib/mysql:Z
+    volumes:
+      - "./mysql:/var/lib/mysql"
+    secrets:
+      - mysql_misp_password
+      - mysql_root_password
+
+  misp:
+    build:
+      context: server/.
+      args:
+        - MISP_TAG=${MISP_TAG}
+        - PHP_VER=${PHP_VER}
+    depends_on:
+      - redis
+      - db
+    ports:
+      - "80:80"
+      - "443:443"
+#    volumes:
+#      - "/mnt/misp/server-configs/:/var/www/MISP/app/Config/:Z"
+#      - "/mnt/misp/logs/:/var/www/MISP/app/tmp/logs/:Z"
+#      - "/mnt/misp/files/:/var/www/MISP/app/files:Z"
+#      - "/mnt/misp/ssl:/etc/nginx/certs:Z"
+    volumes:
+      - "./server-configs/:/var/www/MISP/app/Config/"
+      - "./tmp/:/var/www/MISP/app/tmp"
+      - "./files/:/var/www/MISP/app/files"
+      - "./ssl/:/etc/nginx/certs"
+#      - "./examples/custom-entrypoint.sh:/custom-entrypoint.sh" # Use the example custom-entrypoint.sh
+    environment:
+      - "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt"
+      - "HOSTNAME=https://localhost"
+      - "REDIS_FQDN=redis"      # Hostname for Redis server
+      - "INIT=true"             # Initialze MISP, things includes, attempting to import SQL and the Files DIR
+      - "CRON_USER_ID=1"        # The MISP user ID to run cron jobs as
+#      - "SYNCSERVERS=1 2 3 4"  # The MISP Feed servers to sync in the cron job
+
+# Database Configuration (and their defaults)
+#      - "MYSQL_HOST=db"
+#      - "MYSQL_USER=misp"
+#      - "MYSQL_PASSWORD_FILE=/run/secrets/mysql_misp_password"
+#      - "MYSQL_DATABASE=misp"
+
+# Other configuration (set by default as below)
+#      - "MISP_MODULES_URL=http://misp-modules" # Set the MISP Modules URL, used for Enrichment_services_url / Import_services_url / Export_services_url
+#      - "WORKERS=1" # If set to a value larger than 1 this will increase the number of parallel worker processes
+
+# Optional Settings (set by default as below)
+#      - "NOREDIR=false" # Do not redirect port 80
+#      - "DISIPV6=false" # Disable IPv6 in nginx
+#      - "CERTAUTH=off" # Can be set to optional or on or off - Step 2 of https://github.com/MISP/MISP/tree/2.4/app/Plugin/CertAuth is still required
+#      - "SECURESSL=false" # Enable higher security SSL in nginx
+#      - "REAL_IP_HEADER_NAME=X-Real-IP" # HTTP header where is client IP provided by the load balancer
+
+    secrets:
+      - mysql_misp_password
+
+  misp-modules:
+    build:
+      context: modules/.
+      args:
+        - MODULES_TAG=${MODULES_TAG}
+    environment:
+      - "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt"
+      - "REDIS_BACKEND=redis"
+    depends_on:
+      - redis
+      - db
+
+secrets:
+    mysql_misp_password:
+      file: ./secrets/mysql_misp_password
+    mysql_root_password:
+      file: ./secrets/mysql_root_password
+#    mysql_misp_password:
+#      external: true
+#    mysql_root_password:
+#      external: true

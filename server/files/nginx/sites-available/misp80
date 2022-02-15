@@ -1,0 +1,11 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    access_log /dev/docker-stdout;
+    log_not_found off;
+
+    error_log /dev/docker-stderr error;
+
+    return 301 https://$host$request_uri;
+}

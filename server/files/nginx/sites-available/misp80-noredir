@@ -1,0 +1,56 @@
+server {
+    listen 80;
+    listen [::]:80;
+
+    root /var/www/MISP/app/webroot;
+    index index.php;
+
+    client_max_body_size 50M;
+
+    access_log /dev/docker-stdout;
+    log_not_found off;
+
+    error_log /dev/docker-stderr error;
+
+    # Aded headers for hardening browser security
+    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Download-Options "noopen" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Permitted-Cross-Domain-Policies "none" always;
+    add_header X-Robots-Tag "none" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Remove X-Powered-By, which is an information leak
+    fastcgi_hide_header X-Powered-By;
+
+    location ~ ^/(?:status)(?:$|/) { return 404; }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+
+        fastcgi_param HTTPS $fastcgi_param_https_variable if_not_empty;
+
+        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        fastcgi_read_timeout 300;
+
+        fastcgi_intercept_errors on;
+    }
+
+    location ~ \.(?:css|js|svg|gif|png|jpg|ico)$ {
+        try_files $uri /index.php$is_args$query_string;
+        expires 6M;
+        access_log off;
+    }
+
+    location ~ \.woff2?$ {
+        try_files $uri /index.php$is_args$query_string;
+        expires 7d;
+        access_log off;
+    }
+
+
+    location / {
+        try_files $uri $uri/ /index.php$is_args$query_string;
+    }
+}
