@@ -68,6 +68,12 @@ export MISP_APP_CONFIG_PATH="$MISP_PATH/app/Config"
 export MISP_APP_TMP_PATH="$MISP_PATH/app/tmp"
 export MISP_APP_LOGS_PATH="$MISP_APP_TMP_PATH/logs"
 
+export MISP_USER="www-data"
+export MISP_GROUP="www-data"
+
+export MISP_CAKE_PATH="/var/www/MISP/app/Console/cake"
+export MISP_CAKE_CMD="sudo -u $MISP_USER -g $MISP_GROUP $MISP_CAKE_PATH"
+
 export MYSQL_HOST="${MYSQL_HOST:-db}"
 export MYSQL_PORT="${MYSQL_PORT:-3306}"
 export MYSQL_USER="${MYSQL_USER:-misp}"
@@ -160,6 +166,8 @@ fi
 ################################################################################
 
 init_misp_config() {
+  echo "[configuration] Copy initial configuration from distribution package if needed"
+
   [ -f $MISP_APP_CONFIG_PATH/bootstrap.php ] || cp ${MISP_APP_CONFIG_PATH}.dist/bootstrap.default.php $MISP_APP_CONFIG_PATH/bootstrap.php
   [ -f $MISP_APP_CONFIG_PATH/database.php ] || cp ${MISP_APP_CONFIG_PATH}.dist/database.default.php $MISP_APP_CONFIG_PATH/database.php
   [ -f $MISP_APP_CONFIG_PATH/core.php ] || cp ${MISP_APP_CONFIG_PATH}.dist/core.default.php $MISP_APP_CONFIG_PATH/core.php
@@ -174,26 +182,7 @@ init_misp_config() {
   perl -pe 'BEGIN {open(my $fh, "<", $ENV{"MYSQL_PASSWORD_FILE"}); $r=<$fh>; chomp($r)} s/db\s*password/$r/ge' -i $MISP_APP_CONFIG_PATH/database.php
   sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
 
-  echo "[configuration] Setup php-cake from ENV variables"
-
-  /var/www/MISP/app/Console/cake Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
-  /var/www/MISP/app/Console/cake Admin setSetting "MISP.baseurl" "$HOSTNAME"
-  /var/www/MISP/app/Console/cake Admin setSetting "MISP.python_bin" "$(which python3)"
-  /var/www/MISP/app/Console/cake Admin setSetting "MISP.ca_path" "/etc/ssl/certs/ca-certificates.crt" --force
-
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
-
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_url" "$MISP_MODULES_URL"
-
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_url" "$MISP_MODULES_URL"
-
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_URL"
-
-  /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
+  echo "[configuration] Apply workaround for https://github.com/MISP/MISP/issues/5608"
 
   # Workaround for https://github.com/MISP/MISP/issues/5608
   if [ ! -f /var/www/MISP/PyMISP/pymisp/data/describeTypes.json ]; then
@@ -233,13 +222,36 @@ enforce_permissions() {
   set +x
 }
 
-echo "[configuration] Initialize MISP base config" && init_misp_config
+setup_php_cake() {
+  $MISP_CAKE_CMD Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
+  $MISP_CAKE_CMD Admin setSetting "MISP.baseurl" "$HOSTNAME"
+  $MISP_CAKE_CMD Admin setSetting "MISP.python_bin" "$(which python3)"
+  $MISP_CAKE_CMD Admin setSetting "MISP.ca_path" "/etc/ssl/certs/ca-certificates.crt" --force
 
+  $MISP_CAKE_CMD Admin setSetting "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
+  $MISP_CAKE_CMD Admin setSetting "Plugin.ZeroMQ_enable" true
+
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Enrichment_services_enable" true
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Enrichment_services_url" "$MISP_MODULES_URL"
+
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Import_services_enable" true
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Import_services_url" "$MISP_MODULES_URL"
+
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Export_services_enable" true
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_URL"
+
+  $MISP_CAKE_CMD Admin setSetting "Plugin.Cortex_services_enable" false
+}
+
+echo "[configuration] Initialize MISP base config" && init_misp_config
+i
 echo "[configuration] Configure Resque" && init_resque
 
-echo "[configuration] Sync app files" && sync_misp_files
+echo "[configuration] Synchronize MISP app files" && sync_misp_files
 
-echo "[configuration] Enforce permissions" && enforce_permissions
+echo "[configuration] Enforce permissions for MISP directory" && enforce_permissions
+
+echo "[configuration] Setup php-cake from ENV variables" && setup_php_cake
 
 ################################################################################
 
@@ -247,14 +259,14 @@ init_crontab() {
   CRON_LOG_FILE="$MISP_APP_LOGS_PATH/cron.log"
 
   cat << EOF > /etc/cron.d/misp
-20 2 * * * www-data /var/www/MISP/app/Console/cake Server cacheFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
-30 2 * * * www-data /var/www/MISP/app/Console/cake Server fetchFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+20 2 * * * www-data $MISP_CAKE_PATH Server cacheFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+30 2 * * * www-data $MISP_CAKE_PATH Server fetchFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
 
-00 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateGalaxies >$CRON_LOG_FILE 2>&1
-10 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies >$CRON_LOG_FILE 2>&1
-20 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateWarningLists >$CRON_LOG_FILE 2>&1
-30 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists >$CRON_LOG_FILE 2>&1
-45 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates >$CRON_LOG_FILE 2>&1
+00 3 * * * www-data $MISP_CAKE_PATH Admin updateGalaxies >$CRON_LOG_FILE 2>&1
+10 3 * * * www-data $MISP_CAKE_PATH Admin updateTaxonomies >$CRON_LOG_FILE 2>&1
+20 3 * * * www-data $MISP_CAKE_PATH Admin updateWarningLists >$CRON_LOG_FILE 2>&1
+30 3 * * * www-data $MISP_CAKE_PATH Admin updateNoticeLists >$CRON_LOG_FILE 2>&1
+45 3 * * * www-data $MISP_CAKE_PATH Admin updateObjectTemplates >$CRON_LOG_FILE 2>&1
 
 EOF
 
@@ -263,8 +275,8 @@ EOF
 
     for SYNCSERVER in $SYNCSERVERS; do
       cat << EOF >> /etc/cron.d/misp
-$TIME 0 * * * www-data /var/www/MISP/app/Console/cake Server pull "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
-$TIME 1 * * * www-data /var/www/MISP/app/Console/cake Server push "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
+$TIME 0 * * * www-data $MISP_CAKE_PATH Server pull "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
+$TIME 1 * * * www-data $MISP_CAKE_PATH Server push "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
 
 EOF
 
