@@ -244,7 +244,7 @@ setup_php_cake() {
 }
 
 echo "[configuration] Initialize MISP base config" && init_misp_config
-i
+
 echo "[configuration] Configure Resque" && init_resque
 
 echo "[configuration] Synchronize MISP app files" && sync_misp_files
