@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: misp
+  name: misp-redis-config
+  labels:
+    app: misp
+    component: redis
+data:
+  redis.conf: |
+    appendonly yes
+    protected-mode no
+    maxmemory-policy noeviction

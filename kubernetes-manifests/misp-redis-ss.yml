@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: misp
+  name: misp-redis
+  labels:
+    app: misp
+    component: redis
+spec:
+  replicas: 1
+  serviceName: misp-redis
+  selector:
+    matchLabels:
+      app: misp
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: misp
+        component: redis
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: redis
+          image: redis:6.2.6
+          imagePullPolicy: "Always"
+          command: ["redis-server"]
+          args: ["/conf/redis.conf"]
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 300
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 1
+            periodSeconds: 10
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - mountPath: /data
+              name: misp-redis-data
+            - mountPath: /conf
+              readOnly: true
+              name: misp-redis-config
+      volumes:
+        - name: misp-redis-data
+        - name: misp-redis-config
+          configMap:
+            name: misp-redis-config
+            defaultMode: 0755
+  volumeClaimTemplates:
+  - metadata:
+      name: misp-redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: localStorage
+      resources:
+        requests:
+          storage: 2G

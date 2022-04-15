@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: misp
+  name: misp-modules
+  labels:
+    app: misp
+    component: modules
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: misp
+      component: modules
+  template:
+    metadata:
+      labels:
+        app: misp
+        component: modules
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: modules
+          image: docker.io/m1nl/misp-modules:2.4.156r0
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 6666
+              name: misp-modules
+              protocol: TCP
+          env:
+            - name: REQUESTS_CA_BUNDLE
+              value: /etc/ssl/certs/ca-certificates.crt
+            - name: REDIS_FQDN
+              value: misp-redis.misp.svc.lab.local

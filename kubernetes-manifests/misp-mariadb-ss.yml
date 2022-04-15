@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: misp
+  labels:
+    app: misp
+    component: mariadb
+  name: misp-mariadb
+spec:
+  selector:
+    matchLabels:
+      app: misp
+      component: mariadb
+  serviceName: misp-mariadb
+  template:
+    metadata:
+      labels:
+        app: misp
+        component: mariadb
+    spec:
+      restartPolicy: Always
+      containers:
+        - image: mariadb:10.7.1-focal
+          imagePullPolicy: IfNotPresent
+          name: mariadb
+          ports:
+          - containerPort: 3306
+            name: mysql
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: misp-mariadb-data
+          env:
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: misp-database-secret
+                  key: misp-db-username
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: misp-database-secret
+                  key: misp-db-name
+            - name: MARIADB_PASSWORD_FILE
+              value: /var/run/secrets/misp_db_password
+            - name: MARIADB_ROOT_PASSWORD_FILE
+              value: /var/run/secrets/root_db_password
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: misp-mariadb-data
+            - mountPath: /var/run/secrets
+              name: misp-database-secret
+              readOnly: true
+      volumes:
+        - name: misp-database-secret
+          projected:
+            sources:
+              - secret:
+                  name: misp-database-secret
+                  items:
+                   - key: root-db-password
+                     path: root_db_password
+              - secret:
+                  name: misp-database-secret
+                  items:
+                   - key: misp-db-password
+                     path: misp_db_password
+  volumeClaimTemplates:
+  - metadata:
+      name: misp-mariadb-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: localStorage
+      resources:
+        requests:
+          storage: 8G
+

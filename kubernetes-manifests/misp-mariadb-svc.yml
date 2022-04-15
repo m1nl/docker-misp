@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: misp
+  name: misp-mariadb
+  labels:
+    app: misp
+    component: mariadb
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: misp
+    component: mariadb

@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: misp-server
+  namespace: misp
+  labels:
+    component: server
+    name: misp
+spec:
+  rules:
+  - host: misp.example.com
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: misp-server
+              port:
+                number: 80

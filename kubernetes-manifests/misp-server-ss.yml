@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: misp
+  labels:
+    app: misp
+    component: server
+  name: misp-server
+spec:
+  selector:
+    matchLabels:
+      app: misp
+      component: server
+  serviceName: misp-server
+  template:
+    metadata:
+      labels:
+        app: misp
+        component: server
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: server
+          image: docker.io/m1nl/misp-server:2.4.156r0
+          imagePullPolicy: "Always"
+          livenessProbe:
+            exec:
+              command: ["/usr/local/bin/docker-liveness.sh"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["/usr/local/bin/docker-readiness.sh"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          ports:
+            - containerPort: 80
+              name: misp-http
+              protocol: TCP
+            - containerPort: 443
+              name: misp-https
+              protocol: TCP
+          env:
+            - name: REQUESTS_CA_BUNDLE
+              value: /etc/ssl/certs/ca-certificates.crt
+            - name: HOSTNAME
+              value: http://misp.example.com
+            - name: REDIS_FQDN
+              value: misp-redis.misp.svc.lab.local
+            - name: INIT
+              value: "true"
+            - name: CRON_USER_ID
+              value: "1"
+            - name: MYSQL_HOST
+              value: misp-mariadb.misp.svc.lab.local
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: misp-database-secret
+                  key: misp-db-username
+            - name: MYSQL_PASSWORD_FILE
+              value: /var/run/secrets/misp_db_password
+            - name: MYSQL_DATABASE
+              value: misp
+            - name: MISP_MODULES_URL
+              value: http://misp-modules.misp.svc.lab.local
+            - name: SECURESSL
+              value: "false"
+            - name: NOREDIR
+              value: "true"
+          volumeMounts:
+            - mountPath: /var/run/secrets
+              name: misp-database-secret
+              readOnly: true
+            - mountPath: /var/www/MISP/app/Config
+              name: misp-server-data
+              subPath: server-configs
+            - mountPath: /var/www/MISP/app/tmp
+              name: misp-server-data
+              subPath: tmp
+            - mountPath: /var/www/MISP/app/files
+              name: misp-server-data
+              subPath: files
+            - mountPath: /etc/nginx/certs
+              name: misp-server-data
+              subPath: certs
+      volumes:
+        - name: misp-database-secret
+          projected:
+            sources:
+              - secret:
+                  name: misp-database-secret
+                  items:
+                   - key: misp-db-password
+                     path: misp_db_password
+  volumeClaimTemplates:
+    - metadata:
+        name: misp-server-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: localStorage
+        resources:
+          requests:
+            storage: 16G
