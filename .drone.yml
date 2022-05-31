@@ -41,10 +41,10 @@ steps:
       - "cd $COMPONENT"
       - "export DOCKER_IMAGE=\"$${ACCOUNT_PREFIX}$${IMAGE}-$${COMPONENT}\""
       - "docker pull \"$REGISTRY/$DOCKER_IMAGE:latest\" || true"
-      - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" ."
-      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:latest\""
-      - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
-      - "docker push --all-tags \"$REGISTRY/$DOCKER_IMAGE\""
+      - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:work\" ."
+      - "[ ! -z \"$DRONE_BRANCH\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\""
+      - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
+      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:latest\" && docker push \"$REGISTRY/$DOCKER_IMAGE:latest\""
 
   - name: build_publish_modules
     image: docker
@@ -64,10 +64,9 @@ steps:
       - "export DOCKER_IMAGE=\"$${ACCOUNT_PREFIX}$${IMAGE}-$${COMPONENT}\""
       - "docker pull \"$REGISTRY/$DOCKER_IMAGE:latest\" || true"
       - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" ."
-      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:latest\""
-      - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
-      - "docker push --all-tags \"$REGISTRY/$DOCKER_IMAGE\""
-      - "docker login -u \"$REGISTRY_USERNAME\" -p \"$REGISTRY_PASSWORD\" \"$REGISTRY\""
+      - "[ ! -z \"$DRONE_BRANCH\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\""
+      - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
+      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:latest\" && docker push \"$REGISTRY/$DOCKER_IMAGE:latest\""
 
   - name: notify_failure
     image: drillster/drone-email
