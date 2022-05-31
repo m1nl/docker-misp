@@ -259,14 +259,20 @@ init_crontab() {
   CRON_LOG_FILE="$MISP_APP_LOGS_PATH/cron.log"
 
   cat << EOF > /etc/cron.d/misp
-20 2 * * * www-data $MISP_CAKE_PATH Server cacheFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
-30 2 * * * www-data $MISP_CAKE_PATH Server fetchFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+00 2 * * * www-data $MISP_CAKE_PATH Admin updateGalaxies >$CRON_LOG_FILE 2>&1
+10 2 * * * www-data $MISP_CAKE_PATH Admin updateTaxonomies >$CRON_LOG_FILE 2>&1
+20 2 * * * www-data $MISP_CAKE_PATH Admin updateWarningLists >$CRON_LOG_FILE 2>&1
+30 2 * * * www-data $MISP_CAKE_PATH Admin updateNoticeLists >$CRON_LOG_FILE 2>&1
+45 2 * * * www-data $MISP_CAKE_PATH Admin updateObjectTemplates >$CRON_LOG_FILE 2>&1
 
-00 3 * * * www-data $MISP_CAKE_PATH Admin updateGalaxies >$CRON_LOG_FILE 2>&1
-10 3 * * * www-data $MISP_CAKE_PATH Admin updateTaxonomies >$CRON_LOG_FILE 2>&1
-20 3 * * * www-data $MISP_CAKE_PATH Admin updateWarningLists >$CRON_LOG_FILE 2>&1
-30 3 * * * www-data $MISP_CAKE_PATH Admin updateNoticeLists >$CRON_LOG_FILE 2>&1
-45 3 * * * www-data $MISP_CAKE_PATH Admin updateObjectTemplates >$CRON_LOG_FILE 2>&1
+20 3 * * * www-data $MISP_CAKE_PATH Server cacheFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+30 3 * * * www-data $MISP_CAKE_PATH Server fetchFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+
+20 11 * * * www-data $MISP_CAKE_PATH Server cacheFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+30 11 * * * www-data $MISP_CAKE_PATH Server fetchFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+
+20 19 * * * www-data $MISP_CAKE_PATH Server cacheFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
+30 19 * * * www-data $MISP_CAKE_PATH Server fetchFeed "$CRON_USER_ID" all >$CRON_LOG_FILE 2>&1
 
 EOF
 
@@ -278,9 +284,15 @@ EOF
 $TIME 0 * * * www-data $MISP_CAKE_PATH Server pull "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
 $TIME 1 * * * www-data $MISP_CAKE_PATH Server push "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
 
+$TIME 8 * * * www-data $MISP_CAKE_PATH Server pull "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
+$TIME 9 * * * www-data $MISP_CAKE_PATH Server push "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
+
+$TIME 16 * * * www-data $MISP_CAKE_PATH Server pull "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
+$TIME 17 * * * www-data $MISP_CAKE_PATH Server push "$CRON_USER_ID" "$SYNCSERVER" >$CRON_LOG_FILE 2>&1
+
 EOF
 
-      TIME=$((TIME+5))
+      TIME=$(((TIME+5)%60))
     done
   fi
 }
