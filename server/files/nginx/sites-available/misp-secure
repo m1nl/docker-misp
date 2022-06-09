@@ -41,6 +41,8 @@ server {
 
     location ~ ^/(?:status)(?:$|/) { return 404; }
 
+    include /etc/nginx/site-customization.conf;
+
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
 

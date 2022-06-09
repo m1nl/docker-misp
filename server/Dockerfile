@@ -233,6 +233,7 @@ RUN set -eux; \
 
 COPY files/nginx/sites-available/ /etc/nginx/sites-available/
 COPY files/nginx/conf.d/ /nginx-config-templates
+COPY files/nginx/site-customization.conf /etc/nginx/site-customization.conf
 
 # php configuration templates
 COPY files/fpm-config-template.conf /fpm-config-template.conf
