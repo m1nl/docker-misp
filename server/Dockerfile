@@ -19,6 +19,7 @@ RUN set -eux; \
 WORKDIR /var/www/MISP/app
 
 RUN set -eux; \
+  composer config --no-plugins allow-plugins.composer/installers true; \
   composer install --ignore-platform-reqs ; \
   composer require jumbojett/openid-connect-php --ignore-platform-reqs
 
