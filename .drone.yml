@@ -45,6 +45,7 @@ steps:
       - "[ ! -z \"$DRONE_BRANCH\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\""
       - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
       - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:latest\" && docker push \"$REGISTRY/$DOCKER_IMAGE:latest\""
+      - "exit 0"
 
   - name: build_publish_modules
     image: docker
@@ -67,6 +68,7 @@ steps:
       - "[ ! -z \"$DRONE_BRANCH\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\""
       - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
       - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:latest\" && docker push \"$REGISTRY/$DOCKER_IMAGE:latest\""
+      - "exit 0"
 
   - name: notify_failure
     image: drillster/drone-email
