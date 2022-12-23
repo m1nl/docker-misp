@@ -14,7 +14,8 @@ RUN set -eux; \
     build-essential \
     pkg-config \
     libpoppler-cpp-dev \
-    libfuzzy-dev; \
+    libfuzzy-dev \
+    libssl-dev; \
   apt-get autoremove -y; \
   apt-get clean -; \
   rm -rf /var/lib/apt/lists/*
