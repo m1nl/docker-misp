@@ -3,6 +3,7 @@
 /server-configs/
 !/server-configs/email.php
 /mysql/
+/redis/
 /tmp/
 /secrets/
 !/secrets/.keep
