@@ -69,6 +69,8 @@ RUN set -eux; \
     python3-pip \
     python3-setuptools \
     python3-wheel \
+    python3-venv \
+    python3-build \
     libfuzzy-dev \
     libffi-dev \
     ca-certificates; \
@@ -123,7 +125,7 @@ RUN set -eux; \
 COPY --from=composer-build /deps/PyMISP /tmp/PyMISP/
 RUN set -eux; \
   cd PyMISP; \
-  python3 setup.py bdist_wheel -d /wheels
+  python3 -m build --wheel --outdir /wheels
 
 # grab other modules we need
 RUN set -eux; \
