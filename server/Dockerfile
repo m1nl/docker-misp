@@ -1,4 +1,4 @@
-FROM composer:2.2 as composer-build
+FROM composer:2.5 as composer-build
 
 ARG MISP_TAG
 
