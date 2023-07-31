@@ -1,4 +1,26 @@
-FROM composer:2.5 as composer-build
+FROM debian:bullseye-slim as php-base
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+    gcc \
+    make \
+    libfuzzy-dev \
+    ca-certificates \
+    php \
+    php-dev \
+    php-pear \
+    php-curl \
+    php-mbstring \
+    librdkafka-dev \
+    git; \
+  apt-get autoremove -y; \
+  apt-get clean -y; \
+  rm -rf /var/lib/apt/lists/*
+
+FROM php-base as composer-build
 
 ARG MISP_TAG
 
@@ -18,30 +40,14 @@ RUN set -eux; \
 
 WORKDIR /var/www/MISP/app
 
-RUN set -eux; \
-  composer config --no-plugins allow-plugins.composer/installers true; \
-  composer install --ignore-platform-reqs ; \
-  composer require jumbojett/openid-connect-php --ignore-platform-reqs
-
-FROM debian:bullseye-slim as php-build
-
-ENV DEBIAN_FRONTEND noninteractive
+ENV COMPOSER_ALLOW_SUPERUSER 1
 
 RUN set -eux; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends \
-    gcc \
-    make \
-    libfuzzy-dev \
-    ca-certificates \
-    php \
-    php-dev \
-    php-pear \
-    librdkafka-dev \
-    git; \
-  apt-get autoremove -y; \
-  apt-get clean -y; \
-  rm -rf /var/lib/apt/lists/*
+  php composer.phar config --no-plugins allow-plugins.composer/installers true; \
+  php composer.phar install --ignore-platform-reqs; \
+  php composer.phar require jumbojett/openid-connect-php --ignore-platform-reqs
+
+FROM php-base as php-build
 
 RUN set -eux; \
   pecl channel-update pecl.php.net; \
