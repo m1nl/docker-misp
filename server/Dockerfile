@@ -9,13 +9,31 @@ RUN set -eux; \
     make \
     libfuzzy-dev \
     ca-certificates \
+    git \
+    # PHP Requirements
     php \
     php-dev \
     php-pear \
     php-curl \
+    php-xml \
+    php-intl \
+    php-bcmath \
     php-mbstring \
+    php-mysql \
+    php-redis \
+    php-gd \
+    php-fpm \
+    php-zip \
+    php-apcu \
+    php-opcache \
+    php-gnupg \
     librdkafka-dev \
-    git; \
+    libbrotli-dev \
+    libfuzzy-dev \
+    ssdeep \
+    # Unsure we need these
+    zip \
+    unzip; \
   apt-get autoremove -y; \
   apt-get clean -y; \
   rm -rf /var/lib/apt/lists/*
@@ -44,8 +62,8 @@ ENV COMPOSER_ALLOW_SUPERUSER 1
 
 RUN set -eux; \
   php composer.phar config --no-plugins allow-plugins.composer/installers true; \
-  php composer.phar install --ignore-platform-reqs; \
-  php composer.phar require jumbojett/openid-connect-php --ignore-platform-reqs
+  php composer.phar install --no-dev; \
+  php composer.phar require jumbojett/openid-connect-php
 
 FROM php-base as php-build
 
@@ -172,8 +190,6 @@ RUN set -eux; \
     openssl \
     gpg-agent \
     gpg \
-    ssdeep \
-    libfuzzy2 \
     mariadb-client \
     rsync \
     # Python Requirements
@@ -197,6 +213,8 @@ RUN set -eux; \
     php-gnupg \
     librdkafka1 \
     libbrotli1 \
+    ssdeep \
+    libfuzzy2 \
     # Unsure we need these
     zip \
     unzip; \
