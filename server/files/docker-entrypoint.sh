@@ -189,6 +189,12 @@ init_misp_config() {
     mkdir -p /var/www/MISP/PyMISP/pymisp/data/
     ln -s /usr/local/lib/python3.9/dist-packages/pymisp/data/describeTypes.json /var/www/MISP/PyMISP/pymisp/data/describeTypes.json
   fi
+
+  echo "[configuration] Create GnuPG home if it doesn't exist"
+
+  if [ ! -d /var/www/MISP/app/gnupg ]; then
+    mkdir -p /var/www/MISP/app/gnupg
+  fi
 }
 
 init_resque() {
@@ -211,13 +217,20 @@ sync_misp_files() {
 enforce_permissions() {
   set -x
 
-  find /var/www/MISP -not -user www-data -exec chown www-data:www-data {} +
-  find /var/www/MISP -perm 550 -type f -exec chmod 0550 {} + && find /var/www/MISP -perm 770 -type d -exec chmod 0770 {} +
+  find /var/www/MISP \( -not -user www-data -o -not -group www-data \) -a \( -type f -o -type d \) -exec chown www-data:www-data {} +
+  find /var/www/MISP -type f -perm /111 -not -perm 0750 -exec chmod 0750 {} +
+  find /var/www/MISP -type f -not -perm /111 -not -perm 0640 -exec chmod 0640 {} +
+  find /var/www/MISP -type d -not -perm 770 -exec chmod 0770 {} +
 
-  chmod -R g+ws /var/www/MISP/app/tmp
-  chmod -R g+ws /var/www/MISP/app/files
-  chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
-  chmod 0600 /var/www/MISP/app/Config/config.php /var/www/MISP/app/Config/database.php /var/www/MISP/app/Config/email.php
+  for i in "/var/www/MISP/app/tmp /var/www/MISP/app/files /var/www/MISP/app/Config" ; do
+    find $i -not -perm 0660 -type f -exec chmod 0660 {} +
+    find $i -not -perm 2770 -type d -exec chmod 2770 {} +
+  done
+
+  chmod g= /var/www/MISP/app/Config/config.php /var/www/MISP/app/Config/database.php /var/www/MISP/app/Config/email.php
+  chmod g= -R /var/www/MISP/app/gnupg
+
+  chmod +x /var/www/MISP/app/Console/cake
 
   set +x
 }
@@ -241,6 +254,12 @@ setup_php_cake() {
   $MISP_CAKE_CMD Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_URL"
 
   $MISP_CAKE_CMD Admin setSetting "Plugin.Cortex_services_enable" false
+
+  $MISP_CAKE_CMD Admin setSetting "GnuPG.homedir" "/var/www/MISP/app/gnupg"
+}
+
+run_updates() {
+  $MISP_CAKE_CMD Admin runUpdates
 }
 
 echo "[configuration] Initialize MISP base config" && init_misp_config
@@ -252,6 +271,8 @@ echo "[configuration] Synchronize MISP app files" && sync_misp_files
 echo "[configuration] Enforce permissions for MISP directory" && enforce_permissions
 
 echo "[configuration] Setup php-cake from ENV variables" && setup_php_cake
+
+echo "[configuration] Running database updates" && run_updates
 
 ################################################################################
 
