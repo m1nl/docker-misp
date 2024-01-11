@@ -16,35 +16,37 @@ environment:
 steps:
   - name: build_publish_server
     image: plugins/kaniko
-    registry: registry.nalewajski.pl
-    repo: m1nl/misp-server
-    username:
-      from_secret: dockerhub_username
-    password:
-      from_secret: dockerhub_password
-    dockerfile: server/Dockerfile
-    context: server/
-    build_args:
-      - MISP_TAG
-      - MODULES_TAG
-      - PHP_VER
-    auto_tag: true
+    settings:
+      registry: registry.nalewajski.pl
+      repo: m1nl/misp-server
+      username:
+        from_secret: dockerhub_username
+      password:
+        from_secret: dockerhub_password
+      dockerfile: server/Dockerfile
+      context: server/
+      build_args:
+        - MISP_TAG
+        - MODULES_TAG
+        - PHP_VER
+      auto_tag: true
 
   - name: build_publish_modules
     image: plugins/kaniko
-    registry: registry.nalewajski.pl
-    repo: m1nl/misp-modules
-    username:
-      from_secret: dockerhub_username
-    password:
-      from_secret: dockerhub_password
-    dockerfile: modules/Dockerfile
-    context: modules/
-    build_args:
-      - MISP_TAG
-      - MODULES_TAG
-      - PHP_VER
-    auto_tag: true
+    settings:
+      registry: registry.nalewajski.pl
+      repo: m1nl/misp-modules
+      username:
+        from_secret: dockerhub_username
+      password:
+        from_secret: dockerhub_password
+      dockerfile: modules/Dockerfile
+      context: modules/
+      build_args:
+        - MISP_TAG
+        - MODULES_TAG
+        - PHP_VER
+      auto_tag: true
 
   - name: notify_failure
     image: drillster/drone-email
@@ -63,11 +65,8 @@ steps:
     when:
       status:
       - failure
-
-concurrency:
-  limit: 1
 ---
 kind: signature
-hmac: 888c8f11f0d1f773fa2d41c8b410c04d31298b6e7c872ddd831e01b682de818b
+hmac: 8cb3becfda5afdcec52df2f8fa325eb1353a6d576053ab80dcb1c1d99a0d1677
 
 ...
