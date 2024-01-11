@@ -17,7 +17,6 @@ steps:
   - name: build_publish_server
     image: plugins/kaniko
     settings:
-      registry: registry.nalewajski.pl
       repo: m1nl/misp-server
       username:
         from_secret: dockerhub_username
@@ -34,7 +33,6 @@ steps:
   - name: build_publish_modules
     image: plugins/kaniko
     settings:
-      registry: registry.nalewajski.pl
       repo: m1nl/misp-modules
       username:
         from_secret: dockerhub_username
@@ -67,6 +65,6 @@ steps:
       - failure
 ---
 kind: signature
-hmac: 8cb3becfda5afdcec52df2f8fa325eb1353a6d576053ab80dcb1c1d99a0d1677
+hmac: 9feda0400b370237371e49bfad155f8d57fd5b2e4145907ba68a4e8b49408615
 
 ...
