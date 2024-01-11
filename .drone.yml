@@ -1,74 +1,50 @@
 ---
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 concurrency:
   limit: 1
 
 environment:
-  REGISTRY: "docker.io"
-  ACCOUNT_PREFIX: "m1nl/"
-  IMAGE: "misp"
-  DOCKER_HOST: "tcp://docker:2376"
-  DOCKER_CERT_PATH: "/certs/client"
-  DOCKER_TLS_CERTDIR: "/certs"
-  DOCKER_TLS_VERIFY: "1"
+  MISP_TAG: v2.4.183
+  MODULES_TAG: v2.4.182
+  PHP_VER: 20190902
+  REDIS_VER: 7.2.4-alpine
+  MARIADB_VER: 10.9.8-jammy
 
 steps:
-  - name: wait_for_docker
-    image: docker
-    volumes:
-      - name: docker-client-certdir
-        path: /certs/client
-    commands:
-      - "until docker info >/dev/null 2>&1; do sleep 5; done"
-
   - name: build_publish_server
-    image: docker
-    volumes:
-      - name: docker-client-certdir
-        path: /certs/client
-    environment:
-      COMPONENT: server
-      REGISTRY_USERNAME:
-        from_secret: dockerhub_username
-      REGISTRY_PASSWORD:
-        from_secret: dockerhub_password
-    commands:
-      - "export $(cat .env | xargs)"
-      - "docker login -u \"$REGISTRY_USERNAME\" -p \"$REGISTRY_PASSWORD\" \"$REGISTRY\""
-      - "cd $COMPONENT"
-      - "export DOCKER_IMAGE=\"$${ACCOUNT_PREFIX}$${IMAGE}-$${COMPONENT}\""
-      - "docker pull \"$REGISTRY/$DOCKER_IMAGE:latest\" || true"
-      - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:work\" ."
-      - "[ ! -z \"$DRONE_BRANCH\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\""
-      - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
-      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:latest\" && docker push \"$REGISTRY/$DOCKER_IMAGE:latest\""
-      - "exit 0"
+    image: plugins/kaniko
+    registry: registry.nalewajski.pl
+    repo: m1nl/misp-server
+    username:
+      from_secret: dockerhub_username
+    password:
+      from_secret: dockerhub_password
+    dockerfile: server/Dockerfile
+    context: server/
+    build_args:
+      - MISP_TAG
+      - MODULES_TAG
+      - PHP_VER
+    auto_tag: true
 
   - name: build_publish_modules
-    image: docker
-    volumes:
-      - name: docker-client-certdir
-        path: /certs/client
-    environment:
-      COMPONENT: modules
-      REGISTRY_USERNAME:
-        from_secret: dockerhub_username
-      REGISTRY_PASSWORD:
-        from_secret: dockerhub_password
-    commands:
-      - "export $(cat .env | xargs)"
-      - "docker login -u \"$REGISTRY_USERNAME\" -p \"$REGISTRY_PASSWORD\" \"$REGISTRY\""
-      - "cd $COMPONENT"
-      - "export DOCKER_IMAGE=\"$${ACCOUNT_PREFIX}$${IMAGE}-$${COMPONENT}\""
-      - "docker pull \"$REGISTRY/$DOCKER_IMAGE:latest\" || true"
-      - "docker build --cache-from \"$REGISTRY/$DOCKER_IMAGE:latest\" --build-arg MISP_TAG=$MISP_TAG --build-arg MODULES_TAG=$MODULES_TAG --build-arg PHP_VER=$PHP_VER -t \"$REGISTRY/$DOCKER_IMAGE:work\" ."
-      - "[ ! -z \"$DRONE_BRANCH\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_BRANCH\""
-      - "[ ! -z \"$DRONE_TAG\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\" && docker push \"$REGISTRY/$DOCKER_IMAGE:$DRONE_TAG\""
-      - "[ \"$DRONE_BRANCH\" == \"main\" ] && docker tag \"$REGISTRY/$DOCKER_IMAGE:work\" \"$REGISTRY/$DOCKER_IMAGE:latest\" && docker push \"$REGISTRY/$DOCKER_IMAGE:latest\""
-      - "exit 0"
+    image: plugins/kaniko
+    registry: registry.nalewajski.pl
+    repo: m1nl/misp-modules
+    username:
+      from_secret: dockerhub_username
+    password:
+      from_secret: dockerhub_password
+    dockerfile: modules/Dockerfile
+    context: modules/
+    build_args:
+      - MISP_TAG
+      - MODULES_TAG
+      - PHP_VER
+    auto_tag: true
 
   - name: notify_failure
     image: drillster/drone-email
@@ -88,22 +64,10 @@ steps:
       status:
       - failure
 
-services:
-  - name: docker
-    image: docker:dind
-    privileged: true
-    volumes:
-      - name: docker-client-certdir
-        path: /certs/client
-
-volumes:
-  - name: docker-client-certdir
-    temp: {}
-
 concurrency:
   limit: 1
 ---
 kind: signature
-hmac: 148d248766f6f92284ab9752e885c64980faac1b02d7263b59d7eb016aba66fd
+hmac: 888c8f11f0d1f773fa2d41c8b410c04d31298b6e7c872ddd831e01b682de818b
 
 ...
