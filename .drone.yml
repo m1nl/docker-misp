@@ -29,7 +29,10 @@ steps:
         - MODULES_TAG
         - PHP_VER
       auto_tag: true
+      cleanup: true
+      enable_cache: false
       compressed_caching: false
+      use_new_run: true
 
   - name: build_publish_modules
     image: plugins/kaniko
@@ -46,7 +49,10 @@ steps:
         - MODULES_TAG
         - PHP_VER
       auto_tag: true
+      cleanup: true
+      enable_cache: false
       compressed_caching: false
+      use_new_run: true
 
   - name: notify_failure
     image: drillster/drone-email
@@ -67,6 +73,6 @@ steps:
       - failure
 ---
 kind: signature
-hmac: ef6354edcd6a0a2a86bc90f7b0a1c2e210200589e00c6b632f33c09927e88995
+hmac: a6e99f8d2f3d29ff04970e3ecbc2aa7fe3f1c1f24c3b138d5c1961cebc9d3568
 
 ...
