@@ -7,8 +7,8 @@ concurrency:
   limit: 1
 
 environment:
-  MISP_TAG: v2.4.187
-  MODULES_TAG: v2.4.187
+  MISP_TAG: v2.4.188
+  MODULES_TAG: v2.4.188
   PHP_VER: 20190902
   REDIS_VER: 7.2.4-alpine
   MARIADB_VER: 10.9.8-jammy
