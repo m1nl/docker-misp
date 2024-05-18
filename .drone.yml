@@ -33,6 +33,7 @@ steps:
       enable_cache: false
       compressed_caching: false
       use_new_run: true
+      single_snapshot: true
 
   - name: build_publish_modules
     image: plugins/kaniko
@@ -53,6 +54,7 @@ steps:
       enable_cache: false
       compressed_caching: false
       use_new_run: true
+      single_snapshot: true
 
   - name: notify_failure
     image: drillster/drone-email
@@ -73,6 +75,6 @@ steps:
       - failure
 ---
 kind: signature
-hmac: 2661d3384b6352f1cb1ca815531ba14f976d4f0a36ec2e761b8931c5aa1614da
+hmac: 087adfd4ffb4be4bf37fdae8e681cb6db3ea808da00b1d49127068e7aed5e22a
 
 ...
