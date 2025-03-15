@@ -29,10 +29,10 @@ export REAL_IP_HEADER_NAME="${REAL_IP_HEADER_NAME:-X-Real-IP}"
 ENVSUBST="/usr/bin/envsubst"
 
 PHP_CONFIG_TEMPLATE_DIR="/php-config-templates"
-PHP_CONFIG_DIR="/etc/php/7.4/fpm/conf.d/"
+PHP_CONFIG_DIR="/etc/php/8.2/fpm/conf.d/"
 
 FPM_CONFIG_TEMPLATE="/fpm-config-template.conf"
-FPM_CONFIG="/etc/php/7.4/fpm/php-fpm.conf"
+FPM_CONFIG="/etc/php/8.2/fpm/php-fpm.conf"
 
 NGINX_CONFIG_TEMPLATE_DIR="/nginx-config-templates"
 NGINX_CONFIG_DIR="/etc/nginx/conf.d"
@@ -103,12 +103,12 @@ init_mysql() {
   MYSQL_CMD="mysql --defaults-extra-file=/etc/mysql_misp_password.ini -u $MYSQL_USER -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
 
   isDBUp() {
-    echo "SHOW STATUS" | $MYSQL_CMD 1> /dev/null
+    echo "SHOW STATUS" | $MYSQL_CMD 1> /dev/null 2>&1
     echo $?
   }
 
   isDBInitDone () {
-    echo "DESCRIBE attributes" | $MYSQL_CMD 1> /dev/null
+    echo "DESCRIBE attributes" | $MYSQL_CMD 1> /dev/null 2>&1
     echo $?
   }
 
@@ -182,13 +182,13 @@ init_misp_config() {
   perl -pe 'BEGIN {open(my $fh, "<", $ENV{"MYSQL_PASSWORD_FILE"}); $r=<$fh>; chomp($r)} s/db\s*password/$r/ge' -i $MISP_APP_CONFIG_PATH/database.php
   sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
 
-  echo "[configuration] Apply workaround for https://github.com/MISP/MISP/issues/5608"
+  # echo "[configuration] Apply workaround for https://github.com/MISP/MISP/issues/5608"
 
-  # Workaround for https://github.com/MISP/MISP/issues/5608
-  if [ ! -f /var/www/MISP/PyMISP/pymisp/data/describeTypes.json ]; then
-    mkdir -p /var/www/MISP/PyMISP/pymisp/data/
-    ln -s /usr/local/lib/python3.9/dist-packages/pymisp/data/describeTypes.json /var/www/MISP/PyMISP/pymisp/data/describeTypes.json
-  fi
+  # # Workaround for https://github.com/MISP/MISP/issues/5608
+  # if [ ! -f /var/www/MISP/PyMISP/pymisp/data/describeTypes.json ]; then
+  #   mkdir -p /var/www/MISP/PyMISP/pymisp/data/
+  #   ln -s /usr/local/lib/python3.9/dist-packages/pymisp/data/describeTypes.json /var/www/MISP/PyMISP/pymisp/data/describeTypes.json
+  # fi
 
   echo "[configuration] Create GnuPG home if it doesn't exist"
 

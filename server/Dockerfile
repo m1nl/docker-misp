@@ -1,15 +1,16 @@
-FROM debian:bullseye-slim as php-base
+FROM debian:bookworm-slim AS php-base
 
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN set -eux; \
   apt-get update; \
   apt-get install -y --no-install-recommends \
-    gcc \
+    build-essential \
+    pkg-config \
     make \
-    libfuzzy-dev \
-    ca-certificates \
+    cmake \
     git \
+    ca-certificates \
     # PHP Requirements
     php \
     php-dev \
@@ -28,9 +29,11 @@ RUN set -eux; \
     php-opcache \
     php-gnupg \
     librdkafka-dev \
-    libbrotli-dev \
+    libsimdjson-dev \
     libfuzzy-dev \
     ssdeep \
+    libbrotli-dev \
+    libzstd-dev \
     # Unsure we need these
     zip \
     unzip; \
@@ -38,7 +41,7 @@ RUN set -eux; \
   apt-get clean -y; \
   rm -rf /var/lib/apt/lists/*
 
-FROM php-base as composer-build
+FROM php-base AS composer-build
 
 ARG MISP_TAG
 
@@ -63,23 +66,44 @@ ENV COMPOSER_ALLOW_SUPERUSER 1
 RUN set -eux; \
   php composer.phar config --no-plugins allow-plugins.composer/installers true; \
   php composer.phar install --no-dev; \
-  php composer.phar require jumbojett/openid-connect-php
+  php composer.phar require jakub-onderka/openid-connect-php:1.2.0
 
-FROM php-base as php-build
+FROM php-base AS php-build
 
 RUN set -eux; \
   pecl channel-update pecl.php.net; \
   cp /usr/lib/x86_64-linux-gnu/libfuzzy.* /usr/lib; \
-  pecl install ssdeep; \
   pecl install rdkafka; \
-  git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git; \
+  cd /tmp; \
+  git clone --recursive --depth=1 https://github.com/JakubOnderka/simdjson_php.git; \
+  cd simdjson_php; \
+  phpize; \
+  ./configure; \
+  make; \
+  make install; \
+  cd /tmp; \
+  git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git; \
+  cd pecl-text-ssdeep; \
+  phpize; \
+  ./configure; \
+  make; \
+  make install; \
+  cd /tmp; \
+  git clone --recursive --depth=1 --branch=0.15.2 https://github.com/kjdev/php-ext-brotli.git; \
   cd php-ext-brotli; \
+  phpize; \
+  ./configure; \
+  make; \
+  make install; \
+  cd /tmp; \
+  git clone --recursive --depth=1 --branch=0.14.0 https://github.com/kjdev/php-ext-zstd; \
+  cd php-ext-zstd; \
   phpize; \
   ./configure; \
   make; \
   make install
 
-FROM debian:bullseye-slim as python-build
+FROM debian:bookworm-slim AS python-build
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -88,8 +112,8 @@ RUN set -eux; \
   apt-get install -y --no-install-recommends \
     gcc \
     git \
-    python3.9 \
-    python3.9-dev \
+    python3.11 \
+    python3.11-dev \
     python3-pip \
     python3-setuptools \
     python3-wheel \
@@ -113,7 +137,7 @@ RUN set -eux; \
   ls; \
   python3 setup.py bdist_wheel -d /wheels; \
   sed -i 's/-e //g' requirements.txt; \
-  pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
+  pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 
 # install python-maec
 COPY --from=composer-build /deps/python-maec/ /tmp/python-maec/
@@ -127,7 +151,7 @@ COPY --from=composer-build /deps/python-cybox/ /tmp/python-cybox/
   cd python-cybox; \
   python3 setup.py bdist_wheel -d /wheels; \
   sed -i 's/-e //g' requirements.txt; \
-  pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
+  pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 
 # install python stix
 COPY --from=composer-build /deps/python-stix/ /tmp/python-stix/
@@ -135,7 +159,7 @@ RUN set -eux; \
   cd python-stix; \
   python3 setup.py bdist_wheel -d /wheels; \
   sed -i 's/-e //g' requirements.txt; \
-  pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
+  pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 
 # install STIX2.0 library to support STIX 2.0 export
 COPY --from=composer-build /deps/cti-python-stix2/ /tmp/cti-python-stix2/
@@ -143,7 +167,7 @@ RUN set -eux; \
   cd cti-python-stix2; \
   python3 setup.py bdist_wheel -d /wheels; \
   sed -i 's/-e //g' requirements.txt; \
-  pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
+  pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 
 # install PyMISP
 COPY --from=composer-build /deps/PyMISP /tmp/PyMISP/
@@ -153,26 +177,23 @@ RUN set -eux; \
 
 # grab other modules we need
 RUN set -eux; \
-  pip3 wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief cryptography pydeep
+  pip wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief cryptography pydeep
 
 # remove extra packages due to incompatible requirements.txt files
 WORKDIR /wheels
 
 RUN set -eux; \
-  find . -name "pluggy*" | grep -v "pluggy-0.13.1" | xargs rm -f; \
-  find . -name "tox*" | grep -v "tox-2.7.0" | xargs rm -f; \
-  find . -name "Sphinx*" | grep -v "Sphinx-1.8.6" | xargs rm -f; \
-  find . -name "docutils*" | grep -v "docutils-0.17.1" | xargs rm -f; \
-  find . -name "pyparsing*" | grep -v "pyparsing-3.0.6" | xargs rm -f; \
+  find . -name "pluggy*" | grep -v "pluggy-1.5.0" | xargs rm -f; \
+  find . -name "tox*" | grep -v "tox-4.24.2" | xargs rm -f; \
+  find . -name "Sphinx*" | grep -v "Sphinx-1.5.3" | xargs rm -f; \
+  find . -name "docutils*" | grep -v "docutils-0.19" | xargs rm -f; \
+#  find . -name "pyparsing*" | grep -v "pyparsing-3.0.6" | xargs rm -f; \
   find . -name "coverage*" | xargs rm -f; \
   find . -name "pytest*" | xargs rm -f
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND noninteractive
-
-ARG MISP_TAG
-ARG PHP_VER
 
 # OS packages
 RUN set -eux; \
@@ -193,7 +214,7 @@ RUN set -eux; \
     mariadb-client \
     rsync \
     # Python Requirements
-    python3.9 \
+    python3.11 \
     python3-setuptools \
     python3-pip \
     # PHP Requirements
@@ -212,7 +233,9 @@ RUN set -eux; \
     php-opcache \
     php-gnupg \
     librdkafka1 \
+    libsimdjson14 \
     libbrotli1 \
+    libzstd1 \
     ssdeep \
     libfuzzy2 \
     # Unsure we need these
@@ -228,23 +251,31 @@ COPY --from=composer-build /var/www/MISP /var/www/MISP
 # python Modules
 COPY --from=python-build /wheels /wheels
 RUN set -eux ;\
-  pip3 install --no-cache-dir /wheels/*.whl; \
+  pip install --break-system-packages --no-cache-dir /wheels/*.whl; \
   rm -rf /wheels
 
 # PHP
 
+ARG PHP_VER
+
 # install ssdeep prebuild, latest composer, then install the app's PHP deps
-COPY --from=php-build /usr/lib/php/${PHP_VER}/ssdeep.so /usr/lib/php/${PHP_VER}/ssdeep.so
 COPY --from=php-build /usr/lib/php/${PHP_VER}/rdkafka.so /usr/lib/php/${PHP_VER}/rdkafka.so
+COPY --from=php-build /usr/lib/php/${PHP_VER}/simdjson.so /usr/lib/php/${PHP_VER}/simdjson.so
+COPY --from=php-build /usr/lib/php/${PHP_VER}/ssdeep.so /usr/lib/php/${PHP_VER}/ssdeep.so
 COPY --from=php-build /usr/lib/php/${PHP_VER}/brotli.so /usr/lib/php/${PHP_VER}/brotli.so
+COPY --from=php-build /usr/lib/php/${PHP_VER}/zstd.so /usr/lib/php/${PHP_VER}/zstd.so
 
 RUN set -eux; \
   for dir in /etc/php/*; do echo "extension=rdkafka.so" > "$dir/mods-available/rdkafka.ini"; done; \
-  for dir in /etc/php/*; do echo "extension=brotli.so" > "$dir/mods-available/brotli.ini"; done; \
+  for dir in /etc/php/*; do echo "extension=simdjson.so" > "$dir/mods-available/simdjson.ini"; done; \
   for dir in /etc/php/*; do echo "extension=ssdeep.so" > "$dir/mods-available/ssdeep.ini"; done; \
+  for dir in /etc/php/*; do echo "extension=brotli.so" > "$dir/mods-available/brotli.ini"; done; \
+  for dir in /etc/php/*; do echo "extension=zstd.so" > "$dir/mods-available/zstd.ini"; done; \
   phpenmod rdkafka; \
-  phpenmod brotli; \
+  phpenmod simdjson; \
   phpenmod ssdeep; \
+  phpenmod brotli; \
+  phpenmod zstd; \
   cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
 # change name of the file store, default configuration and tmp directory, so we can sync from it in the entrypoint
@@ -256,7 +287,7 @@ RUN set -eux; \
 # nginx
 RUN set -eux; \
   rm /etc/nginx/sites-enabled/*; \
-  mkdir /run/php /etc/nginx/certs
+  mkdir -p /run/php /etc/nginx/certs
 
 COPY files/nginx/sites-available/ /etc/nginx/sites-available/
 COPY files/nginx/conf.d/ /nginx-config-templates
