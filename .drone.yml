@@ -7,7 +7,7 @@ concurrency:
   limit: 1
 
 environment:
-  MISP_TAG: v2.5.8
+  MISP_TAG: v2.5.9
   MODULES_TAG: v3.0.1
   PHP_VER: 20220829
   REDIS_VER: 7.4.2-alpine
@@ -75,6 +75,6 @@ steps:
       - failure
 ---
 kind: signature
-hmac: ee2f9f4720d430e608d57b0dc67e7e5a51378fbb69df82909dd3fc6a06cd0a02
+hmac: 9aa2a66800ffff6d5f669952e7099891d9e6f341de375e1ca0df9e9215b0451a
 
 ...
